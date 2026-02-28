@@ -40,8 +40,12 @@ class ConnectionTreeWidget(QTreeWidget):
     
     def _on_item_double_clicked(self, item, column):
         """处理双击事件"""
+        # 检查是否是连接项
+        if item.parent() == self.root:
+            # 双击连接项，打开数据库
+            self._open_connection(item)
         # 检查是否是数据表项（父节点是数据库项）
-        if item.parent() and item.parent().parent():
+        elif item.parent() and item.parent().parent():
             # 获取连接项
             connection_item = item.parent().parent()
             connection_info = connection_item.data(0, Qt.ItemDataRole.UserRole)

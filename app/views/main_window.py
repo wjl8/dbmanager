@@ -111,6 +111,8 @@ class MainWindow(QMainWindow):
     def _init_central_widget(self):
         """初始化中央工作区"""
         self.tab_widget = QTabWidget()
+        self.tab_widget.setTabsClosable(True)  # 启用标签页关闭功能
+        self.tab_widget.tabCloseRequested.connect(self._close_tab)  # 连接关闭信号
         self.setCentralWidget(self.tab_widget)
         
         # 添加默认的SQL编辑器标签
@@ -169,6 +171,10 @@ class MainWindow(QMainWindow):
                     
                     # 添加数据编辑器标签
                     data_editor = DataEditorWidget()
+                    # 创建连接信息的副本，并添加数据库名
+                    connection_info_copy = connection_info.copy()
+                    connection_info_copy["database"] = database_name
+                    data_editor.set_connection_info(connection_info_copy, table_name)
                     data_editor.load_data(result, columns)
                     
                     # 添加到标签页
@@ -239,3 +245,7 @@ class MainWindow(QMainWindow):
         tab_name = f"SQL编辑器 - {connection_info['name']}"
         self.tab_widget.addTab(sql_editor, tab_name)
         self.tab_widget.setCurrentWidget(sql_editor)
+    
+    def _close_tab(self, index):
+        """关闭标签页"""
+        self.tab_widget.removeTab(index)

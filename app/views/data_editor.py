@@ -240,6 +240,8 @@ class DataEditorWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._init_ui()
+        self.connection_info = None
+        self.table_name = None
     
     def _init_ui(self):
         """初始化UI"""
@@ -308,10 +310,30 @@ class DataEditorWidget(QWidget):
     def _submit(self):
         """提交修改"""
         if self.model.has_changes():
-            # 这里应该调用数据库驱动执行SQL
-            # 暂时显示提示
-            QMessageBox.information(self, "提示", "提交功能需要数据库连接，暂未实现")
-            self.status_label.setText("就绪")
+            if self.connection_info and self.table_name:
+                try:
+                    from app.services.driver_factory import DriverFactory
+                    
+                    # 创建数据库驱动
+                    driver = DriverFactory.create_driver(self.connection_info["type"])
+                    
+                    # 连接数据库
+                    success = driver.connect(self.connection_info)
+                    if success:
+                        # 提交修改
+                        self.model.submit(driver, self.table_name)
+                        QMessageBox.information(self, "成功", "数据提交成功")
+                        self.status_label.setText("就绪")
+                        
+                        # 断开连接
+                        driver.disconnect()
+                    else:
+                        QMessageBox.critical(self, "错误", "连接数据库失败")
+                except Exception as e:
+                    QMessageBox.critical(self, "错误", f"提交失败: {str(e)}")
+            else:
+                QMessageBox.information(self, "提示", "提交功能需要数据库连接，暂未实现")
+                self.status_label.setText("就绪")
         else:
             QMessageBox.information(self, "提示", "没有需要提交的修改")
     
@@ -338,3 +360,8 @@ class DataEditorWidget(QWidget):
         self.model.load_data(data, columns)
         # 调整列宽
         self.table_view.resizeColumnsToContents()
+    
+    def set_connection_info(self, connection_info, table_name):
+        """设置数据库连接信息和表名"""
+        self.connection_info = connection_info
+        self.table_name = table_name
