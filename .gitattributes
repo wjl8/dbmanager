@@ -1,0 +1,10 @@
+# 自动处理行尾符
+* text=auto
+
+# 特定文件类型强制使用 LF
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.qss text eol=lf
+*.bat text eol=crlf

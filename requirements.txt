@@ -1,0 +1,23 @@
+# GUI framework
+PyQt6==6.6.1
+PyQt6-Qt6==6.6.1
+PyQt6-sip==13.6.0
+
+# Database drivers
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+pymysql==1.1.0
+pyodbc==5.0.1
+redis==5.0.1
+pymongo==4.5.0
+
+# Code editor
+QScintilla==2.14.1
+
+# Other tools
+pycryptodome==3.19.0
+pyyaml==6.0.1
+numpy==1.26.2
+pandas==2.1.4
+graphviz==0.20.1
+openpyxl==3.1.5
