@@ -91,6 +91,13 @@ class MainWindow(QMainWindow):
         # 视图菜单
         view_menu = menu_bar.addMenu("视图")
         
+        # 显示/隐藏连接树
+        toggle_connection_action = QAction("显示连接树", self)
+        toggle_connection_action.setCheckable(True)
+        toggle_connection_action.setChecked(True)
+        toggle_connection_action.triggered.connect(self._toggle_connection_dock)
+        view_menu.addAction(toggle_connection_action)
+        
         # 帮助菜单
         help_menu = menu_bar.addMenu("帮助")
         
@@ -117,14 +124,11 @@ class MainWindow(QMainWindow):
         
         # 添加默认的SQL编辑器标签
         self._add_sql_editor_tab()
-        
-        # 添加数据编辑器标签
-        self._add_data_editor_tab()
     
     def _init_connection_dock(self):
         """初始化连接树"""
-        dock = QDockWidget("连接", self)
-        dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.connection_dock = QDockWidget("连接", self)
+        self.connection_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea)
         
         tree_widget = ConnectionTreeWidget()
         
@@ -134,8 +138,8 @@ class MainWindow(QMainWindow):
         # 设置打开SQL编辑器事件处理函数
         tree_widget.on_open_sql_editor = self._on_open_sql_editor
         
-        dock.setWidget(tree_widget)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
+        self.connection_dock.setWidget(tree_widget)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.connection_dock)
     
     def _on_table_double_clicked(self, connection_info, database_name, table_name):
         """处理数据表双击事件"""
@@ -236,16 +240,97 @@ class MainWindow(QMainWindow):
     def _on_open_sql_editor(self, connection_info):
         """处理打开SQL编辑器的请求"""
         # 创建SQL编辑器
-        sql_editor = SQLEditorWidget()
+        from app.views.query_editor import QueryEditorWidget
         
-        # 设置连接信息
-        sql_editor.set_connection_info(connection_info)
+        # 获取所有连接信息
+        connections = []
+        # 从连接树中获取所有连接
+        connection_tree = None
+        for dock_widget in self.findChildren(QDockWidget):
+            if dock_widget.windowTitle() == "连接":
+                connection_tree = dock_widget.widget()
+                break
+        
+        if connection_tree:
+            # 获取根节点（ConnectionTreeWidget的root属性）
+            if hasattr(connection_tree, 'root'):
+                root = connection_tree.root
+                # 遍历所有连接
+                for i in range(root.childCount()):
+                    connection_item = root.child(i)
+                    conn_info = connection_item.data(0, Qt.ItemDataRole.UserRole)
+                    if conn_info:
+                        connections.append(conn_info)
+            else:
+                # 备选方案：使用invisibleRootItem
+                root = connection_tree.invisibleRootItem()
+                # 遍历所有子节点
+                for i in range(root.childCount()):
+                    child = root.child(i)
+                    # 检查是否是"连接"节点
+                    if child.text(0) == "连接":
+                        # 遍历连接节点的子节点
+                        for j in range(child.childCount()):
+                            connection_item = child.child(j)
+                            conn_info = connection_item.data(0, Qt.ItemDataRole.UserRole)
+                            if conn_info:
+                                connections.append(conn_info)
+                        break
+        
+        # 创建查询编辑器
+        query_editor = QueryEditorWidget()
+        
+        # 设置连接列表
+        if connections:
+            query_editor.set_connections(connections)
+            
+            # 自动选择当前连接
+            found = False
+            for i, conn in enumerate(connections):
+                if conn["name"] == connection_info["name"]:
+                    query_editor.connection_combo.setCurrentIndex(i)
+                    # 自动选择当前数据库
+                    if "database" in connection_info:
+                        database = connection_info["database"]
+                        for j in range(query_editor.database_combo.count()):
+                            if query_editor.database_combo.itemData(j) == database:
+                                query_editor.database_combo.setCurrentIndex(j)
+                                break
+                    found = True
+                    break
+            
+            # 如果没有找到当前连接，添加它
+            if not found:
+                query_editor.add_connection(connection_info)
+                query_editor.connection_combo.setCurrentIndex(len(connections))
+                # 自动选择当前数据库
+                if "database" in connection_info:
+                    database = connection_info["database"]
+                    for j in range(query_editor.database_combo.count()):
+                        if query_editor.database_combo.itemData(j) == database:
+                            query_editor.database_combo.setCurrentIndex(j)
+                            break
+        else:
+            # 如果没有获取到任何连接，至少添加当前连接
+            query_editor.add_connection(connection_info)
+            query_editor.connection_combo.setCurrentIndex(0)
+            # 自动选择当前数据库
+            if "database" in connection_info:
+                database = connection_info["database"]
+                for j in range(query_editor.database_combo.count()):
+                    if query_editor.database_combo.itemData(j) == database:
+                        query_editor.database_combo.setCurrentIndex(j)
+                        break
         
         # 添加到标签页
-        tab_name = f"SQL编辑器 - {connection_info['name']}"
-        self.tab_widget.addTab(sql_editor, tab_name)
-        self.tab_widget.setCurrentWidget(sql_editor)
+        tab_name = f"查询编辑器 - {connection_info['name']}"
+        self.tab_widget.addTab(query_editor, tab_name)
+        self.tab_widget.setCurrentWidget(query_editor)
     
     def _close_tab(self, index):
         """关闭标签页"""
         self.tab_widget.removeTab(index)
+    
+    def _toggle_connection_dock(self, checked):
+        """切换连接树的显示/隐藏"""
+        self.connection_dock.setVisible(checked)

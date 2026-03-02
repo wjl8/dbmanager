@@ -63,14 +63,16 @@ class ConnectionTreeWidget(QTreeWidget):
         """显示上下文菜单"""
         menu = QMenu()
         
-        # 新建连接
-        new_connection_action = QAction("新建连接", self)
-        new_connection_action.triggered.connect(self._new_connection)
-        menu.addAction(new_connection_action)
-        
         # 获取选中的项
         selected_items = self.selectedItems()
-        if selected_items:
+        
+        # 如果没有选中项（点击的是根节点）
+        if not selected_items:
+            # 新建连接
+            new_connection_action = QAction("新建连接", self)
+            new_connection_action.triggered.connect(self._new_connection)
+            menu.addAction(new_connection_action)
+        elif selected_items:
             selected_item = selected_items[0]
             
             # 如果选中的是连接项

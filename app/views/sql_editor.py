@@ -377,17 +377,9 @@ class SQLWorker(QThread):
                     self.error_occurred.emit("连接数据库失败")
                     return
             else:
-                # 模拟SQL执行
-                # 实际项目中，这里应该调用数据库驱动执行SQL
-                # 模拟查询结果
-                if 'SELECT' in self.sql.upper():
-                    results.append([
-                        {'id': 1, 'name': 'Alice', 'age': 25},
-                        {'id': 2, 'name': 'Bob', 'age': 30},
-                        {'id': 3, 'name': 'Charlie', 'age': 35}
-                    ])
-                else:
-                    results.append(10)  # 模拟影响行数
+                # 没有连接信息，报错
+                self.error_occurred.emit("数据库连接信息未设置")
+                return
             
             self.result_ready.emit(results)
         except Exception as e:
